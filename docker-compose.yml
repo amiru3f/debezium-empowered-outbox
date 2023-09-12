@@ -1,0 +1,108 @@
+services:
+  kafka:
+    image: bitnami/kafka:3.5.1-debian-11-r21
+    restart: always
+    container_name: kafka
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    networks:
+      - internal_network
+    volumes:
+      - "./kafka-data:/bitnami/kafka"
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: app
+    ports: 
+      - '5000:5000'
+    depends_on:
+      - sqlserver
+  kafkaui:
+    image: provectuslabs/kafka-ui:latest
+    restart: always
+    container_name: kafka-ui
+    ports:
+      - '8080:8080'
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=kafka_cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_AUDIT_TOPICAUDITENABLED=true
+      - KAFKA_CLUSTERS_0_AUDIT_CONSOLEAUDITENABLED=true
+    depends_on:
+      - kafka
+    networks:
+      - internal_network
+  sqlserver:
+    container_name: sqlserver
+    image: mcr.microsoft.com/mssql/server:latest
+    ports:
+      - '1433:1433'
+    environment:
+      - ACCEPT_EULA=1
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_AGENT_ENABLED=True
+    command:
+    - /bin/bash
+    - -c 
+    - |
+      /opt/mssql/bin/sqlservr &
+      sleep 30
+      for foo in /scripts/*.sql
+        do /opt/mssql-tools/bin/sqlcmd -U sa -P $$MSSQL_SA_PASSWORD -e -i $$foo
+      done
+      sleep infinity
+    networks:
+      - internal_network
+    volumes:
+      - ./sql-data:/var/opt/mssql
+      - ./scripts:/scripts
+  debezium:
+    image: quay.io/debezium/connect:2.4
+    restart: always
+    container_name: debezium
+    ports:
+      - '8083:8083'
+    environment:
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=connect_configs
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - OFFSET_STORAGE_TOPIC=connect_offsets
+      - STATUS_STORAGE_TOPIC=connect_statuses
+    depends_on:
+      - kafka
+      - sqlserver
+    networks:
+      - internal_network
+  grafana:
+    image: grafana/grafana
+    restart: always
+    container_name: grafana
+    ports:
+      - '3000:3000'
+    depends_on:
+      - kafka
+      - sqlserver
+      - debezium
+    networks:
+      - internal_network
+networks:
+  internal_network:
+  
+
+  
+  
