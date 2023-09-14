@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 public class ProducerDbContext : DbContext
 {
+    public ProducerDbContext(DbContextOptions options) : base(options)
+    {
+    }
+    
     public DbSet<Order> Order { set; get; }
     public DbSet<OutboxMessage> OutBox { set; get; }
 
@@ -33,10 +37,5 @@ public class ProducerDbContext : DbContext
         modelBuilder.Entity<Order>()
             .Property(o => o.Id)
             .ValueGeneratedOnAdd();
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-    {
-        options.UseSqlServer("Data Source=localhost;Initial Catalog=debezium-test;User ID=sa;Password=yourStrong(!)Password;MultipleActiveResultSets=True;trusted_connection=false;Persist Security Info=False;Encrypt=False");
     }
 }

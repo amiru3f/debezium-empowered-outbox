@@ -5,10 +5,15 @@ services:
       dockerfile: Dockerfile
     restart: always
     container_name: app
+    environment:
+      - ConnectionStrings__ProducerDbContext=Data Source=sqlserver;Initial Catalog=debezium-test;User ID=sa;Password=yourStrong(!)Password;MultipleActiveResultSets=True;trusted_connection=false;Persist Security Info=False;Encrypt=False
+      - ASPNETCORE_ENVIRONMENT=Production
     ports: 
-      - '5000:5000'
+      - '5000:80'
     depends_on:
       - sqlserver
+    networks:
+      - internal_network
   kafka:
     image: bitnami/kafka:3.5.1-debian-11-r21
     restart: always

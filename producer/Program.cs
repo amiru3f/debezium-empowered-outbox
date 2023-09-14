@@ -1,8 +1,12 @@
 ﻿using Domain;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder();
 
-builder.Services.AddDbContext<ProducerDbContext>();
+builder.Services.AddDbContext<ProducerDbContext>(options => {
+    var connectionString = builder.Configuration.GetConnectionString(nameof(ProducerDbContext));
+    options.UseSqlServer(connectionString);
+});
 
 var app = builder.Build();
 
