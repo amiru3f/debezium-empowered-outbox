@@ -1,4 +1,14 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: app
+    ports: 
+      - '5000:5000'
+    depends_on:
+      - sqlserver
   kafka:
     image: bitnami/kafka:3.5.1-debian-11-r21
     restart: always
@@ -20,17 +30,6 @@ services:
       - internal_network
     volumes:
       - "./kafka-data:/bitnami/kafka"
-  
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    container_name: app
-    ports: 
-      - '5000:5000'
-    depends_on:
-      - sqlserver
   kafkaui:
     image: provectuslabs/kafka-ui:latest
     restart: always
